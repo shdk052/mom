@@ -13,17 +13,20 @@ SPREADSHEET_NAME = "שם הגיליון המדויק שלך" # שנה לשם ה-
 # ----------------------------------------
 # הגדרת הנתיבים המוחלטים (התיקון הקריטי)
 # ----------------------------------------
+# משיג את הנתיב המוחלט של התיקייה הנוכחית
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
+# *** שימו לב לשינוי הקריטי ב-static_folder ***
 app = Flask(__name__, 
             template_folder=os.path.join(base_dir, 'templates'),
-            static_folder=os.path.join(base_dir, 'templates', 'static'))
+            static_folder=os.path.join(base_dir, 'static')) # הפניה לתיקייה 'static' בתיקיית הבסיס
 
 
+# --- פונקציית write_to_sheet נשארת זהה ---
 def write_to_sheet(data_list):
-    """מתחברת ל-Google Sheet ומוסיפה שורה חדשה באמצעות משתנה סביבה."""
-    
+    # ... (הקוד נשאר ללא שינוי, קריאה מ-GOOGLE_CREDENTIALS) ...
     creds_json = os.environ.get('GOOGLE_CREDENTIALS')
+    
     if not creds_json:
         print("שגיאה קריטית: משתנה הסביבה GOOGLE_CREDENTIALS אינו מוגדר.", file=sys.stderr)
         return False
@@ -43,20 +46,18 @@ def write_to_sheet(data_list):
     except Exception as e:
         print(f"שגיאה בכתיבה ל-Google Sheets: {e}", file=sys.stderr)
         return False
+# --- סוף פונקציית write_to_sheet ---
 
-# ----------------- ניתובים (Routes) של Flask -----------------
 
+# --- ניתובים (Routes) נשארים זהים ---
 @app.route('/')
 def index():
-    # מקבל את פרמטר הסטטוס (status) מה-URL (אם קיים)
     status = request.args.get('status', 'form')
-    # מעביר את הסטטוס ל-form.html
     return render_template('form.html', status=status)
 
 @app.route('/submit', methods=['POST'])
 def submit():
     if request.method == 'POST':
-        # קבלת הנתונים (כמו קודם)
         שם_מלא = request.form.get('full_name')
         אימייל = request.form.get('email')
         טלפון = request.form.get('phone')
@@ -65,13 +66,11 @@ def submit():
         row_data = [שם_מלא, אימייל, טלפון, תאריך_רישום]
         
         if write_to_sheet(row_data):
-            # אם הצליח - מפנה חזרה ל-/ עם סטטוס 'success'
             return redirect(url_for('index', status='success'))
         else:
-            # אם נכשל - מפנה חזרה ל-/ עם סטטוס 'error'
             return redirect(url_for('index', status='error'))
 
-# ----------------- הרצה (כמו קודם) -----------------
+# --- הרצה נשארת זהה ---
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
