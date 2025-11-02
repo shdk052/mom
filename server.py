@@ -6,38 +6,41 @@ from datetime import datetime
 import json
 import sys
 
-# הגדרות הליבה של האפליקציה
-# ודא שייבאת את os: import os
+# --- הגדרות הגיליון - חובה לעדכן את השם! ---
+SPREADSHEET_NAME = "שם הגיליון המדויק שלך" # שנה לשם ה-Google Sheet שלך
+# ----------------------------------------
+
+# ----------------------------------------
+# הגדרת הנתיבים המוחלטים (פותר את שגיאת TemplateNotFound ב-Railway)
+# ----------------------------------------
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
-# שנה את השורה הראשונה של יצירת האפליקציה:
-# app = Flask(__name__)  <-- מחק או הפוך להערה
-app = Flask(__name__, template_folder=os.path.join(base_dir, 'templates'))
+app = Flask(__name__, 
+            # מגדיר את הנתיב המוחלט לתיקיית templates
+            template_folder=os.path.join(base_dir, 'templates'),
+            # מגדיר את הנתיב המוחלט לתיקיית static
+            static_folder=os.path.join(base_dir, 'templates', 'static'))
 
-# --- הגדרות הגיליון - חובה לעדכן את השם! ---
-SPREADSHEET_NAME = "שם הגיליון המדויק שלך" # שנה לשם המדויק של ה-Google Sheet שלך
-# ----------------------------------------
 
 def write_to_sheet(data_list):
     """מתחברת ל-Google Sheet ומוסיפה שורה חדשה עם הנתונים, באמצעות משתנה סביבה."""
     
-    # 1. קריאת אישורי המפתח ממשתנה הסביבה
+    # 1. קריאת אישורי המפתח ממשתנה הסביבה (GOOGLE_CREDENTIALS)
     creds_json = os.environ.get('GOOGLE_CREDENTIALS')
     
     if not creds_json:
-        # הודעת שגיאה קריטית אם המשתנה לא הוגדר ב-Railway
         print("שגיאה קריטית: משתנה הסביבה GOOGLE_CREDENTIALS אינו מוגדר.", file=sys.stderr)
         return False
 
     try:
-        # הגדרת הטווחים והיקף האימות
+        # הגדרת היקף האימות
         scope = ['https://spreadsheets.google.com/feeds',
                  'https://www.googleapis.com/auth/drive']
         
-        # המרת תוכן הטקסט מ-JSON למבנה נתונים של פייתון
+        # המרת תוכן הטקסט מ-JSON למבנה נתונים
         creds_info = json.loads(creds_json)
         
-        # אימות באמצעות המידע שבזיכרון (במקום קריאה מקובץ)
+        # אימות באמצעות המידע שבזיכרון
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_info, scope)
         client = gspread.authorize(creds)
 
@@ -62,7 +65,7 @@ def index():
 @app.route('/submit', methods=['POST'])
 def submit():
     if request.method == 'POST':
-        # קבלת הנתונים משדות הטופס (השמות חייבים להתאים ל-form.html)
+        # קבלת הנתונים משדות הטופס
         שם_מלא = request.form.get('full_name')
         אימייל = request.form.get('email')
         טלפון = request.form.get('phone')
@@ -70,7 +73,7 @@ def submit():
         # הוספת תאריך וזמן הרישום
         תאריך_רישום = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # איסוף הנתונים לרשימה: סדר השדות חייב להתאים לסדר העמודות בגיליון!
+        # איסוף הנתונים לרשימה (סדר העמודות בגיליון!)
         row_data = [שם_מלא, אימייל, טלפון, תאריך_רישום]
         
         # שליחת הנתונים ל-Google Sheet
@@ -84,9 +87,11 @@ def submit():
 def thank_you():
     return render_template('thank_you.html')
 
-if __name__ == '__main__':
-    # משיג את הפורט ממשתני הסביבה (חשוב עבור Railway)
-    port = int(os.environ.get('PORT', 5000))
-    # מאזין לכל הממשקים (חשוב עבור סביבת ענן)
-    app.run(host='0.0.0.0', port=port, debug=True)
+@app.route('/error')
+def error_page():
+    return render_template('error.html')
 
+if __name__ == '__main__':
+    # מיועד להרצה מקומית בלבד
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
