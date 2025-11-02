@@ -1,1 +1,35 @@
-
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>טופס רישום מלא</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>הרשמה למערכת</h1>
+        <p>מלא את הפרטים שלך בטופס למטה.</p>
+        
+        <form method="POST" action="/submit">
+            
+            <div class="form-group">
+                <label for="full_name">שם מלא:</label>
+                <input type="text" id="full_name" name="full_name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">כתובת אימייל:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">טלפון:</label>
+                <input type="tel" id="phone" name="phone">
+            </div>
+            
+            <button type="submit">שלח טופס</button>
+        </form>
+    </div>
+</body>
+</html>
