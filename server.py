@@ -11,8 +11,9 @@ SPREADSHEET_NAME = "שם הגיליון המדויק שלך" # שנה לשם ה-
 # ----------------------------------------
 
 # ----------------------------------------
-# הגדרת הנתיבים המוחלטים (פותר את שגיאת TemplateNotFound ב-Railway)
+# הגדרת הנתיבים המוחלטים (התיקון הקריטי)
 # ----------------------------------------
+# משיג את הנתיב המוחלט של התיקייה הנוכחית
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__, 
@@ -23,7 +24,7 @@ app = Flask(__name__,
 
 
 def write_to_sheet(data_list):
-    """מתחברת ל-Google Sheet ומוסיפה שורה חדשה עם הנתונים, באמצעות משתנה סביבה."""
+    """מתחברת ל-Google Sheet ומוסיפה שורה חדשה באמצעות משתנה סביבה."""
     
     # 1. קריאת אישורי המפתח ממשתנה הסביבה (GOOGLE_CREDENTIALS)
     creds_json = os.environ.get('GOOGLE_CREDENTIALS')
@@ -33,11 +34,9 @@ def write_to_sheet(data_list):
         return False
 
     try:
-        # הגדרת היקף האימות
         scope = ['https://spreadsheets.google.com/feeds',
                  'https://www.googleapis.com/auth/drive']
         
-        # המרת תוכן הטקסט מ-JSON למבנה נתונים
         creds_info = json.loads(creds_json)
         
         # אימות באמצעות המידע שבזיכרון
@@ -47,7 +46,6 @@ def write_to_sheet(data_list):
         # פתיחת הגיליון
         sheet = client.open(SPREADSHEET_NAME).sheet1 
         
-        # הוספת שורה חדשה בתחתית הגיליון
         sheet.append_row(data_list)
         return True
     
@@ -59,29 +57,23 @@ def write_to_sheet(data_list):
 
 @app.route('/')
 def index():
-    # מציג את הטופס
     return render_template('form.html')
 
 @app.route('/submit', methods=['POST'])
 def submit():
     if request.method == 'POST':
-        # קבלת הנתונים משדות הטופס
+        # קבלת הנתונים
         שם_מלא = request.form.get('full_name')
         אימייל = request.form.get('email')
         טלפון = request.form.get('phone')
-        
-        # הוספת תאריך וזמן הרישום
         תאריך_רישום = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # איסוף הנתונים לרשימה (סדר העמודות בגיליון!)
         row_data = [שם_מלא, אימייל, טלפון, תאריך_רישום]
         
-        # שליחת הנתונים ל-Google Sheet
         if write_to_sheet(row_data):
             return redirect(url_for('thank_you'))
         else:
-            # הפניה לדף שגיאה
-            return render_template('error.html')
+            return redirect(url_for('error_page'))
 
 @app.route('/thank_you')
 def thank_you():
@@ -92,6 +84,5 @@ def error_page():
     return render_template('error.html')
 
 if __name__ == '__main__':
-    # מיועד להרצה מקומית בלבד
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
