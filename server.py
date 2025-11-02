@@ -7,7 +7,7 @@ import json
 import sys
 
 # --- הגדרות הגיליון - חובה לעדכן את השם! ---
-SPREADSHEET_NAME = "שם הגיליון המדויק שלך" # שנה לשם ה-Google Sheet שלך
+SPREADSHEET_NAME = "mom"
 # ----------------------------------------
 
 # ----------------------------------------
@@ -74,3 +74,4 @@ def submit():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
+
