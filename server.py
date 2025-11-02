@@ -7,7 +7,12 @@ import json
 import sys
 
 # הגדרות הליבה של האפליקציה
-app = Flask(__name__)
+# ודא שייבאת את os: import os
+base_dir = os.path.dirname(os.path.abspath(__file__))
+
+# שנה את השורה הראשונה של יצירת האפליקציה:
+# app = Flask(__name__)  <-- מחק או הפוך להערה
+app = Flask(__name__, template_folder=os.path.join(base_dir, 'templates'))
 
 # --- הגדרות הגיליון - חובה לעדכן את השם! ---
 SPREADSHEET_NAME = "שם הגיליון המדויק שלך" # שנה לשם המדויק של ה-Google Sheet שלך
@@ -84,3 +89,4 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     # מאזין לכל הממשקים (חשוב עבור סביבת ענן)
     app.run(host='0.0.0.0', port=port, debug=True)
+
