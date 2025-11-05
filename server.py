@@ -7,7 +7,7 @@ from email.message import EmailMessage
 import sys
 
 # ----------------------------------------
-# הגדרת הנתיבים המוחלטים (כמו קודם)
+# הגדרת הנתיבים המוחלטים (לצורך פריסה ב-Railway)
 # ----------------------------------------
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -20,8 +20,8 @@ def send_email(subject, body, receiver_email):
     """שולחת מייל באמצעות SMTP של Gmail."""
     
     # קריאת משתני סביבה
-    EMAIL_USER = os.environ.get('momemail053@gmail.com')
-    EMAIL_PASSWORD = os.environ.get('tubr vkyb szyn spse')
+    EMAIL_USER = os.environ.get('EMAIL_USER')
+    EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
     
     if not EMAIL_USER or not EMAIL_PASSWORD:
         print("שגיאה קריטית: משתני הסביבה EMAIL_USER או EMAIL_PASSWORD אינם מוגדרים.", file=sys.stderr)
@@ -70,18 +70,16 @@ def submit():
             <p><b>תאריך ושעה:</b> {תאריך_רישום}</p>
             <hr>
             <p><b>שם מלא:</b> {שם_מלא}</p>
-            <h3>שאלה 1:</h3>
-            <p>{תשובה_לשאלה_1.replace('\\n', '<br>')}</p>
-            <h3>שאלה 2:</h3>
-            <p>{תשובה_לשאלה_2.replace('\\n', '<br>')}</p>
-            <hr>
-            {f'<p><b>קישור לתמונה:</b> <a href="{str(escape(request.form.get("image_url")))}">{str(escape(request.form.get("image_url")))}</a></p><img src="{str(escape(request.form.get("image_url")))}" style="max-width: 300px;">' if request.form.get("image_url") else ''}
+            <h3>שאלה 1: תאר את הניסיון המקצועי שלך:</h3>
+            <p style="white-space: pre-wrap;">{תשובה_לשאלה_1}</p>
+            <h3>שאלה 2: מהן הציפיות שלך משיתוף הפעולה העתידי:</h3>
+            <p style="white-space: pre-wrap;">{תשובה_לשאלה_2}</p>
         </body>
         </html>
         """
         
-        # 4. שליחת המייל
-        receiver_email = os.environ.get('momemail053@gmail.com')
+        # 3. שליחת המייל
+        receiver_email = os.environ.get('RECEIVER_EMAIL')
         subject = f"טופס חדש התקבל מ: {שם_מלא}"
         
         if send_email(subject, email_body_html, receiver_email):
