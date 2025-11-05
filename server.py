@@ -1,14 +1,12 @@
 from flask import Flask, request, render_template, redirect, url_for
 import os
 from datetime import datetime
-from markupsafe import escape 
+from markupsafe import escape
 import smtplib
 from email.message import EmailMessage
 import sys
 
-# ----------------------------------------
-# הגדרת הנתיבים המוחלטים
-# ----------------------------------------
+# הגדרות נתיבים...
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__, 
@@ -17,14 +15,16 @@ app = Flask(__name__,
 
 
 def send_email(subject, body, receiver_email):
-    """שולחת מייל באמצעות SMTP של Gmail, משתמשת בפורט 587 (TLS)."""
+    """שולחת מייל באמצעות SMTP של Gmail, עם Timeout מוגדל."""
     
     # קריאת משתני סביבה
     EMAIL_USER = os.environ.get('EMAIL_USER')
     EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
+    SMTP_SERVER = os.environ.get('SMTP_SERVER') # נקרא כעת מ-Railway: smtp.gmail.com
+    SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
     
-    if not EMAIL_USER or not EMAIL_PASSWORD:
-        print("שגיאה קריטית: משתני הסביבה EMAIL_USER או EMAIL_PASSWORD אינם מוגדרים.", file=sys.stderr)
+    if not all([EMAIL_USER, EMAIL_PASSWORD, SMTP_SERVER]):
+        print("שגיאה קריטית: משתני סביבה של Gmail חסרים או לא הוגדרו.", file=sys.stderr)
         return False
     
     msg = EmailMessage()
@@ -34,15 +34,15 @@ def send_email(subject, body, receiver_email):
     msg.set_content(body, subtype='html') 
     
     try:
-        # *** התיקון הקריטי: מעבר ל-SMTP (פורט 587) ושימוש ב-starttls() ***
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.ehlo()         # שלב חובה: זיהוי לשרת
-        server.starttls()     # שלב חובה: הפעלת הצפנת TLS
+        # *** התיקון הקריטי: הוספת timeout=60 לשלב החיבור ***
+        # פורט 587, ונותנים 60 שניות לחיבור לפני Worker Timeout
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=60)
+        server.ehlo()
+        server.starttls()
         
-        # התחברות (עם סיסמת האפליקציה)
+        # התחברות עם סיסמת האפליקציה של גוגל
         server.login(EMAIL_USER, EMAIL_PASSWORD)
         
-        # שליחה וסגירה
         server.send_message(msg)
         server.quit()
         
@@ -52,7 +52,7 @@ def send_email(subject, body, receiver_email):
         print(f"שגיאה בשליחת מייל: {e}", file=sys.stderr)
         return False
 
-# ----------------- ניתובים (Routes) של Flask (ללא שינוי) -----------------
+# ----------------- ניתובים (Routes) של Flask -----------------
 
 @app.route('/')
 def index():
