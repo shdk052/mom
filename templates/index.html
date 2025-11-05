@@ -36,7 +36,7 @@
             margin-bottom: 20px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            box-sizing: border-box; /* חשוב שלא ישבור את רוחב ה-100% */
+            box-sizing: border-box; 
             resize: vertical;
         }
         button[type="submit"] {
@@ -61,7 +61,7 @@
 </head>
 <body>
     
-    <form method="POST" action="הדבק כאן את ה-URL של Formspree שקיבלת">
+    <form method="POST" action="https://formspree.io/f/mpwovqye">
         <h1>טופס פנייה</h1>
         
         <label for="full_name">שם מלא:</label>
@@ -73,7 +73,7 @@
         <label for="q2">מהן הציפיות שלך משיתוף הפעולה העתידי:</label>
         <textarea id="q2" name="ציפיות משיתוף פעולה" rows="5" required></textarea>
         
-        <input type="hidden" name="_next" value="https://[שם הדומיין של Render שלך]/?status=success" />
+        <input type="hidden" name="_next" value="https://your-app-name.onrender.com/?status=success" />
         
         <input type="hidden" name="_replyto" value="אל תענה אוטומטית" />
 
@@ -90,7 +90,6 @@
 
         if (status === 'success') {
             messageContainer.innerHTML = '<p style="color: green; font-weight: bold; padding: 15px; border: 1px solid green; background-color: #e6ffe6;">הטופס נשלח בהצלחה! תודה רבה.</p>';
-            // מנקה את ה-URL לאחר הצגת ההודעה כדי שלא תופיע בריענון
             setTimeout(() => {
                 window.history.replaceState(null, null, window.location.pathname);
             }, 500);
