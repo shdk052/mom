@@ -1,13 +1,13 @@
 from flask import Flask, request, render_template, redirect, url_for
 import os
 from datetime import datetime
-from markupsafe import escape # לניקוי קלט
+from markupsafe import escape 
 import smtplib
 from email.message import EmailMessage
 import sys
 
 # ----------------------------------------
-# הגדרת הנתיבים המוחלטים (לצורך פריסה ב-Railway)
+# הגדרת הנתיבים המוחלטים
 # ----------------------------------------
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -17,7 +17,7 @@ app = Flask(__name__,
 
 
 def send_email(subject, body, receiver_email):
-    """שולחת מייל באמצעות SMTP של Gmail."""
+    """שולחת מייל באמצעות SMTP של Gmail, משתמשת בפורט 587 (TLS)."""
     
     # קריאת משתני סביבה
     EMAIL_USER = os.environ.get('EMAIL_USER')
@@ -31,20 +31,28 @@ def send_email(subject, body, receiver_email):
     msg['Subject'] = subject
     msg['From'] = EMAIL_USER
     msg['To'] = receiver_email
-    msg.set_content(body, subtype='html') # הגדרת גוף ההודעה כ-HTML
+    msg.set_content(body, subtype='html') 
     
     try:
-        # התחברות לשרת SMTP של גוגל
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-            server.login(EMAIL_USER, EMAIL_PASSWORD)
-            server.send_message(msg)
+        # *** התיקון הקריטי: מעבר ל-SMTP (פורט 587) ושימוש ב-starttls() ***
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.ehlo()         # שלב חובה: זיהוי לשרת
+        server.starttls()     # שלב חובה: הפעלת הצפנת TLS
+        
+        # התחברות (עם סיסמת האפליקציה)
+        server.login(EMAIL_USER, EMAIL_PASSWORD)
+        
+        # שליחה וסגירה
+        server.send_message(msg)
+        server.quit()
+        
         return True
     
     except Exception as e:
         print(f"שגיאה בשליחת מייל: {e}", file=sys.stderr)
         return False
 
-# ----------------- ניתובים (Routes) של Flask -----------------
+# ----------------- ניתובים (Routes) של Flask (ללא שינוי) -----------------
 
 @app.route('/')
 def index():
@@ -55,14 +63,12 @@ def index():
 def submit():
     if request.method == 'POST':
         
-        # 1. קליטת הנתונים וניקוי באמצעות escape()
         שם_מלא = str(escape(request.form.get('full_name')))
         תשובה_לשאלה_1 = str(escape(request.form.get('q1')))
         תשובה_לשאלה_2 = str(escape(request.form.get('q2')))
         
         תאריך_רישום = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # 2. בניית גוף המייל (HTML)
         email_body_html = f"""
         <html>
         <body dir="rtl">
@@ -78,7 +84,6 @@ def submit():
         </html>
         """
         
-        # 3. שליחת המייל
         receiver_email = os.environ.get('RECEIVER_EMAIL')
         subject = f"טופס חדש התקבל מ: {שם_מלא}"
         
