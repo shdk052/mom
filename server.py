@@ -1,20 +1,13 @@
 from flask import Flask, request, render_template, redirect, url_for
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 import os
 from datetime import datetime
-import json
+from markupsafe import escape # לניקוי קלט
+import smtplib
+from email.message import EmailMessage
 import sys
 
-# --- הגדרות הגיליון - סופיות ---
-# המזהה הייחודי של הגיליון (הדרך הבטוחה להתחברות)
-SPREADSHEET_ID = "1WdT3uh2Ll4HwdzYqQzuUKY83bnAmqJy9alLyPOfjXw8"
-# שם הגיליון לצורך תיעוד (השם שבו השתמשת)
-SPREADSHEET_NAME = "mom" 
 # ----------------------------------------
-
-# ----------------------------------------
-# הגדרת הנתיבים המוחלטים (לצורך פריסה ב-Railway)
+# הגדרת הנתיבים המוחלטים (כמו קודם)
 # ----------------------------------------
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -23,62 +16,77 @@ app = Flask(__name__,
             static_folder=os.path.join(base_dir, 'static'))
 
 
-def write_to_sheet(data_list):
-    """מתחברת ל-Google Sheet באמצעות המזהה (ID) ומוסיפה שורה."""
+def send_email(subject, body, receiver_email):
+    """שולחת מייל באמצעות SMTP של Gmail."""
     
-    # קריאת אישורי המפתח ממשתנה הסביבה
-    creds_json = os.environ.get('GOOGLE_CREDENTIALS')
+    # קריאת משתני סביבה
+    EMAIL_USER = os.environ.get('momemail053@gmail.com')
+    EMAIL_PASSWORD = os.environ.get('tubr vkyb szyn spse')
     
-    if not creds_json:
-        print("שגיאה קריטית: משתנה הסביבה GOOGLE_CREDENTIALS אינו מוגדר.", file=sys.stderr)
+    if not EMAIL_USER or not EMAIL_PASSWORD:
+        print("שגיאה קריטית: משתני הסביבה EMAIL_USER או EMAIL_PASSWORD אינם מוגדרים.", file=sys.stderr)
         return False
-
+    
+    msg = EmailMessage()
+    msg['Subject'] = subject
+    msg['From'] = EMAIL_USER
+    msg['To'] = receiver_email
+    msg.set_content(body, subtype='html') # הגדרת גוף ההודעה כ-HTML
+    
     try:
-        # הגדרת היקף האימות
-        scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive']
-        
-        # המרת תוכן JSON לזיכרון והתחברות
-        creds_info = json.loads(creds_json)
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_info, scope)
-        client = gspread.authorize(creds)
-
-        # *** שימוש ב-ID להתחברות ***
-        sheet = client.open_by_key(SPREADSHEET_ID).sheet1 
-        
-        # הוספת שורה חדשה
-        sheet.append_row(data_list)
+        # התחברות לשרת SMTP של גוגל
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(EMAIL_USER, EMAIL_PASSWORD)
+            server.send_message(msg)
         return True
     
     except Exception as e:
-        # זו ההודעה שהופיעה לך (כעת היא מציגה את השגיאה המדויקת אם יש):
-        print(f"שגיאה בכתיבה ל-Google Sheets: {e}", file=sys.stderr)
+        print(f"שגיאה בשליחת מייל: {e}", file=sys.stderr)
         return False
 
 # ----------------- ניתובים (Routes) של Flask -----------------
 
 @app.route('/')
 def index():
-    # מקבל את פרמטר הסטטוס (success/error/form)
     status = request.args.get('status', 'form')
     return render_template('form.html', status=status)
 
 @app.route('/submit', methods=['POST'])
 def submit():
     if request.method == 'POST':
-        # קבלת הנתונים
-        שם_מלא = request.form.get('full_name')
-        אימייל = request.form.get('email')
-        טלפון = request.form.get('phone')
+        
+        # 1. קליטת הנתונים וניקוי באמצעות escape()
+        שם_מלא = str(escape(request.form.get('full_name')))
+        תשובה_לשאלה_1 = str(escape(request.form.get('q1')))
+        תשובה_לשאלה_2 = str(escape(request.form.get('q2')))
+        
         תאריך_רישום = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        row_data = [שם_מלא, אימייל, טלפון, תאריך_רישום]
+        # 2. בניית גוף המייל (HTML)
+        email_body_html = f"""
+        <html>
+        <body dir="rtl">
+            <h2>טופס חדש נשלח!</h2>
+            <p><b>תאריך ושעה:</b> {תאריך_רישום}</p>
+            <hr>
+            <p><b>שם מלא:</b> {שם_מלא}</p>
+            <h3>שאלה 1:</h3>
+            <p>{תשובה_לשאלה_1.replace('\\n', '<br>')}</p>
+            <h3>שאלה 2:</h3>
+            <p>{תשובה_לשאלה_2.replace('\\n', '<br>')}</p>
+            <hr>
+            {f'<p><b>קישור לתמונה:</b> <a href="{str(escape(request.form.get("image_url")))}">{str(escape(request.form.get("image_url")))}</a></p><img src="{str(escape(request.form.get("image_url")))}" style="max-width: 300px;">' if request.form.get("image_url") else ''}
+        </body>
+        </html>
+        """
         
-        if write_to_sheet(row_data):
-            # הצלחה
+        # 4. שליחת המייל
+        receiver_email = os.environ.get('momemail053@gmail.com')
+        subject = f"טופס חדש התקבל מ: {שם_מלא}"
+        
+        if send_email(subject, email_body_html, receiver_email):
             return redirect(url_for('index', status='success'))
         else:
-            # כישלון
             return redirect(url_for('index', status='error'))
 
 # ----------------- הרצה -----------------
